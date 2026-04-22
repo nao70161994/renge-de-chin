@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">レンジでチン</string>
+    <string name="answer01">レンジ</string>
+    <string name="answer02">オーブン</string>
+    <string name="answer03">トースター</string>
+</resources>
