@@ -1,15 +1,15 @@
 package com.mycompany.myapp;
 
+import android.app.Activity;
+import android.os.Bundle;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
-import android.os.Bundle;
 import android.view.Gravity;
-import android.view.View;
+import android.view.ViewGroup;
 import android.widget.PopupWindow;
 import android.widget.TextView;
-import androidx.appcompat.app.AppCompatActivity;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,7 +21,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.button3).setOnClickListener(v -> showPopup(v, "トゥース！"));
     }
 
-    private void showPopup(View anchor, String message) {
+    private void showPopup(android.view.View anchor, String message) {
         TextView tv = new TextView(this);
         tv.setText(message);
         tv.setTextColor(Color.WHITE);
@@ -35,8 +35,8 @@ public class MainActivity extends AppCompatActivity {
         tv.setBackground(bg);
 
         PopupWindow popup = new PopupWindow(tv,
-            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
-            android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT);
         popup.setElevation(8);
         popup.showAsDropDown(anchor, 0, -anchor.getHeight() - 120, Gravity.CENTER);
 
