@@ -83,17 +83,17 @@ public class MainActivity extends Activity {
     }
 
     private short[] generateLightsaber() {
-        int n = SAMPLE_RATE * 700 / 1000;
+        int n = SAMPLE_RATE * 250 / 1000;
         short[] s = new short[n];
         double p1 = 0, p2 = 0, p3 = 0;
         for (int i = 0; i < n; i++) {
             double t = (double) i / SAMPLE_RATE;
-            double freq = 600 * Math.exp(-t * 2.5) + 100;
+            double freq = 500 * Math.exp(-t * 12) + 80;
             double dp = 2 * Math.PI * freq / SAMPLE_RATE;
             p1 += dp; p2 += dp * 1.5; p3 += dp * 2.0;
             double wave = Math.sin(p1) + 0.5 * Math.sin(p2) + 0.25 * Math.sin(p3);
-            double env = Math.min(t * 20, 1.0) * Math.exp(-t * 1.5);
-            s[i] = (short) (wave * env * 8000);
+            double env = Math.min(t * 60, 1.0) * Math.exp(-t * 8);
+            s[i] = (short) (wave * env * 10000);
         }
         return s;
     }
