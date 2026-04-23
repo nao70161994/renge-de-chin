@@ -54,6 +54,19 @@ cd "$BUILD_DIR/dex"
 zip -q -0 -u "../unsigned.apk" classes.dex
 cd -
 
+echo "=== 7b. アセットの追加 ==="
+ASSETS_SRC="app/src/main/assets"
+if [ -d "$ASSETS_SRC" ] && [ "$(ls -A $ASSETS_SRC 2>/dev/null)" ]; then
+    STAGE=$(mktemp -d)
+    mkdir -p "$STAGE/assets"
+    cp -r "$ASSETS_SRC/"* "$STAGE/assets/"
+    ABS_APK=$(realpath "$BUILD_DIR/unsigned.apk")
+    cd "$STAGE"
+    zip -0 -u "$ABS_APK" assets/*
+    cd -
+    rm -rf "$STAGE"
+fi
+
 echo "=== 8. zipalign ==="
 zipalign -f 4 "$BUILD_DIR/unsigned.apk" "$BUILD_DIR/aligned.apk"
 

@@ -6,6 +6,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -19,11 +20,24 @@ public class MainActivity extends Activity {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private static final int SAMPLE_RATE = 44100;
+    private SoundPool soundPool;
+    private int toosSoundId = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+
+        soundPool = new SoundPool.Builder().setMaxStreams(3).build();
+        try {
+            toosSoundId = soundPool.load(getAssets().openFd("toos.ogg"), 1);
+        } catch (Exception e) {}
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        soundPool.release();
     }
 
     public void range(View v) {
@@ -37,15 +51,13 @@ public class MainActivity extends Activity {
     }
 
     public void toast(View v) {
-        playSynth(2);
+        if (toosSoundId != -1) soundPool.play(toosSoundId, 1f, 1f, 0, 0, 1f);
         showPopup(v, "トゥース！");
     }
 
     private void playSynth(final int type) {
         new Thread(() -> {
-            short[] samples = type == 0 ? generateBell()
-                            : type == 1 ? generateLightsaber()
-                            : generateToos();
+            short[] samples = type == 0 ? generateBell() : generateLightsaber();
             AudioTrack track = new AudioTrack(AudioManager.STREAM_MUSIC, SAMPLE_RATE,
                 AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT,
                 samples.length * 2, AudioTrack.MODE_STATIC);
@@ -56,7 +68,6 @@ public class MainActivity extends Activity {
         }).start();
     }
 
-    // ベル：非整数倍音をもつ減衰サイン波（880Hz 基音）
     private short[] generateBell() {
         int n = SAMPLE_RATE * 1200 / 1000;
         short[] s = new short[n];
@@ -71,7 +82,6 @@ public class MainActivity extends Activity {
         return s;
     }
 
-    // ライトセーバー：周波数を指数的に下げながら倍音を重ねる
     private short[] generateLightsaber() {
         int n = SAMPLE_RATE * 700 / 1000;
         short[] s = new short[n];
@@ -84,22 +94,6 @@ public class MainActivity extends Activity {
             double wave = Math.sin(p1) + 0.5 * Math.sin(p2) + 0.25 * Math.sin(p3);
             double env = Math.min(t * 20, 1.0) * Math.exp(-t * 1.5);
             s[i] = (short) (wave * env * 8000);
-        }
-        return s;
-    }
-
-    // トゥース（仮）：上昇チャープ音
-    private short[] generateToos() {
-        int n = SAMPLE_RATE * 400 / 1000;
-        short[] s = new short[n];
-        double phase = 0;
-        double dur = 0.4;
-        for (int i = 0; i < n; i++) {
-            double t = (double) i / SAMPLE_RATE;
-            double freq = 400 + 800 * (t / dur);
-            phase += 2 * Math.PI * freq / SAMPLE_RATE;
-            double env = Math.sin(Math.PI * t / dur);
-            s[i] = (short) (Math.sin(phase) * env * 12000);
         }
         return s;
     }
