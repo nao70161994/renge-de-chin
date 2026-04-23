@@ -3,8 +3,9 @@ package com.mycompany.myapp;
 import android.app.Activity;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.media.AudioFormat;
 import android.media.AudioManager;
-import android.media.ToneGenerator;
+import android.media.AudioTrack;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -17,6 +18,7 @@ import android.widget.TextView;
 public class MainActivity extends Activity {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
+    private static final int SAMPLE_RATE = 44100;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,24 +27,81 @@ public class MainActivity extends Activity {
     }
 
     public void range(View v) {
-        playTone(ToneGenerator.TONE_PROP_BEEP, 400);
+        playSynth(0);
         showPopup(v, "チン！");
     }
 
     public void oven(View v) {
-        playTone(ToneGenerator.TONE_DTMF_0, 600);
+        playSynth(1);
         showPopup(v, "ブン！");
     }
 
     public void toast(View v) {
-        playTone(ToneGenerator.TONE_DTMF_9, 300);
+        playSynth(2);
         showPopup(v, "トゥース！");
     }
 
-    private void playTone(int toneType, int durationMs) {
-        ToneGenerator tg = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
-        tg.startTone(toneType, durationMs);
-        handler.postDelayed(tg::release, durationMs + 100);
+    private void playSynth(final int type) {
+        new Thread(() -> {
+            short[] samples = type == 0 ? generateBell()
+                            : type == 1 ? generateLightsaber()
+                            : generateToos();
+            AudioTrack track = new AudioTrack(AudioManager.STREAM_MUSIC, SAMPLE_RATE,
+                AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT,
+                samples.length * 2, AudioTrack.MODE_STATIC);
+            track.write(samples, 0, samples.length);
+            track.play();
+            try { Thread.sleep(samples.length * 1000L / SAMPLE_RATE + 200); } catch (Exception e) {}
+            track.release();
+        }).start();
+    }
+
+    // ベル：非整数倍音をもつ減衰サイン波（880Hz 基音）
+    private short[] generateBell() {
+        int n = SAMPLE_RATE * 1200 / 1000;
+        short[] s = new short[n];
+        for (int i = 0; i < n; i++) {
+            double t = (double) i / SAMPLE_RATE;
+            double decay = Math.exp(-t * 4.0);
+            double wave = Math.sin(2 * Math.PI * 880 * t)
+                        + 0.3 * Math.sin(2 * Math.PI * 880 * 2.76 * t)
+                        + 0.1 * Math.sin(2 * Math.PI * 880 * 5.4 * t);
+            s[i] = (short) (wave * decay * 10000);
+        }
+        return s;
+    }
+
+    // ライトセーバー：周波数を指数的に下げながら倍音を重ねる
+    private short[] generateLightsaber() {
+        int n = SAMPLE_RATE * 700 / 1000;
+        short[] s = new short[n];
+        double p1 = 0, p2 = 0, p3 = 0;
+        for (int i = 0; i < n; i++) {
+            double t = (double) i / SAMPLE_RATE;
+            double freq = 600 * Math.exp(-t * 2.5) + 100;
+            double dp = 2 * Math.PI * freq / SAMPLE_RATE;
+            p1 += dp; p2 += dp * 1.5; p3 += dp * 2.0;
+            double wave = Math.sin(p1) + 0.5 * Math.sin(p2) + 0.25 * Math.sin(p3);
+            double env = Math.min(t * 20, 1.0) * Math.exp(-t * 1.5);
+            s[i] = (short) (wave * env * 8000);
+        }
+        return s;
+    }
+
+    // トゥース（仮）：上昇チャープ音
+    private short[] generateToos() {
+        int n = SAMPLE_RATE * 400 / 1000;
+        short[] s = new short[n];
+        double phase = 0;
+        double dur = 0.4;
+        for (int i = 0; i < n; i++) {
+            double t = (double) i / SAMPLE_RATE;
+            double freq = 400 + 800 * (t / dur);
+            phase += 2 * Math.PI * freq / SAMPLE_RATE;
+            double env = Math.sin(Math.PI * t / dur);
+            s[i] = (short) (Math.sin(phase) * env * 12000);
+        }
+        return s;
     }
 
     private void showPopup(View anchor, String message) {
