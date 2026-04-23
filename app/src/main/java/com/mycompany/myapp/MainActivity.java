@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.PopupWindow;
 import android.widget.TextView;
@@ -15,13 +16,13 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-
-        findViewById(R.id.button1).setOnClickListener(v -> showPopup(v, "チン！"));
-        findViewById(R.id.button2).setOnClickListener(v -> showPopup(v, "ブン！"));
-        findViewById(R.id.button3).setOnClickListener(v -> showPopup(v, "トゥース！"));
     }
 
-    private void showPopup(android.view.View anchor, String message) {
+    public void range(View v) { showPopup(v, "チン！"); }
+    public void oven(View v)  { showPopup(v, "ブン！"); }
+    public void toast(View v) { showPopup(v, "トゥース！"); }
+
+    private void showPopup(View anchor, String message) {
         TextView tv = new TextView(this);
         tv.setText(message);
         tv.setTextColor(Color.WHITE);

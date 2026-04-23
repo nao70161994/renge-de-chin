@@ -3,63 +3,59 @@ set -e
 
 PACKAGE="com.mycompany.myapp"
 SRC_DIR="app/src/main/java"
-RES_DIR="app/src/main/res"
 MANIFEST="app/src/main/AndroidManifest.xml"
 BUILD_DIR="app/build/output"
-ANDROID_JAR="$BUILD_DIR/android.jar"
+SDK_JAR="sdk-android.jar"
+ORIG_RESOURCES="app/build/bin/resources.ap_"
 KEYSTORE="debug.keystore"
 
 echo "=== 1. ツールのインストール ==="
-pkg install -y openjdk-17 aapt2 d8 apksigner android-tools wget unzip 2>/dev/null || true
+pkg install -y openjdk-17 aapt2 d8 apksigner android-tools wget unzip zip 2>/dev/null || true
 
-echo "=== 2. ビルドディレクトリの準備 ==="
-rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR/gen" "$BUILD_DIR/classes" "$BUILD_DIR/dex"
-
-echo "=== 3. android.jar の取得 ==="
-if [ ! -f "$ANDROID_JAR" ]; then
-    echo "android.jar をダウンロード中..."
-    wget -q -O "$BUILD_DIR/platform.zip" \
-        "https://dl.google.com/android/repository/platform-34_r02.zip"
-    unzip -j -q "$BUILD_DIR/platform.zip" "android-34/android.jar" -d "$BUILD_DIR"
-    rm "$BUILD_DIR/platform.zip"
-    echo "android.jar 取得完了"
+echo "=== 2. SDK android.jar の取得 ==="
+if [ ! -f "$SDK_JAR" ]; then
+    wget -q -O /tmp/platform-34.zip \
+        "https://dl.google.com/android/repository/platform-34-ext12_r01.zip"
+    unzip -j -q /tmp/platform-34.zip "android-34-ext12/android.jar" -d .
+    mv android.jar "$SDK_JAR"
+    rm /tmp/platform-34.zip
 fi
 
-echo "=== 4. リソースのコンパイル ==="
-aapt2 compile -o "$BUILD_DIR/res_compiled.zip" --dir "$RES_DIR"
+echo "=== 3. ビルドディレクトリの準備 ==="
+rm -rf "$BUILD_DIR"
+mkdir -p "$BUILD_DIR/gen" "$BUILD_DIR/classes" "$BUILD_DIR/dex" "$BUILD_DIR/res_flat"
 
-echo "=== 5. リソースのリンク（R.java生成）==="
+echo "=== 4. R.java の生成（aapt2）==="
+aapt2 compile -o "$BUILD_DIR/res_compiled.zip" --dir "app/src/main/res"
 aapt2 link \
-    -o "$BUILD_DIR/unsigned.apk" \
+    -o "$BUILD_DIR/tmp.apk" \
     --manifest "$MANIFEST" \
-    -I "$ANDROID_JAR" \
+    -I "$SDK_JAR" \
     --java "$BUILD_DIR/gen" \
-    --rename-manifest-package "$PACKAGE" \
-    --min-sdk-version 21 \
-    --target-sdk-version 34 \
-    --version-code 1 \
-    --version-name "1.0" \
     "$BUILD_DIR/res_compiled.zip"
 
-echo "=== 6. Java コンパイル ==="
+echo "=== 5. Java コンパイル ==="
 JAVA_FILES=$(find "$SRC_DIR" "$BUILD_DIR/gen" -name "*.java" | tr '\n' ' ')
-javac -source 1.8 -target 1.8 \
-    -classpath "$ANDROID_JAR" \
+javac --release 8 \
+    -classpath "$SDK_JAR" \
     -d "$BUILD_DIR/classes" \
     $JAVA_FILES
 
-echo "=== 7. DEX 変換 ==="
+echo "=== 6. DEX 変換 ==="
 CLASS_FILES=$(find "$BUILD_DIR/classes" -name "*.class" | tr '\n' ' ')
 d8 --output "$BUILD_DIR/dex" \
-    --lib "$ANDROID_JAR" \
+    --lib "$SDK_JAR" \
     --min-api 21 \
     $CLASS_FILES
 
-echo "=== 8. APK に DEX を追加 ==="
+echo "=== 7. 元のresources.ap_に新しいDEXを追加 ==="
+cp "$ORIG_RESOURCES" "$BUILD_DIR/unsigned.apk"
 cd "$BUILD_DIR/dex"
-zip -q -u "../unsigned.apk" classes.dex
+zip -q -0 -u "../unsigned.apk" classes.dex
 cd -
+
+echo "=== 8. zipalign ==="
+zipalign -f 4 "$BUILD_DIR/unsigned.apk" "$BUILD_DIR/aligned.apk"
 
 echo "=== 9. 署名キーの作成 ==="
 if [ ! -f "$KEYSTORE" ]; then
@@ -80,7 +76,7 @@ apksigner sign \
     --ks-pass pass:android \
     --key-pass pass:android \
     --out "app-debug.apk" \
-    "$BUILD_DIR/unsigned.apk"
+    "$BUILD_DIR/aligned.apk"
 
 echo ""
 echo "✓ ビルド完了: app-debug.apk"

@@ -3,3 +3,7 @@ app/build/
 local.properties
 *.iml
 .idea/
+android.jar
+sdk-android.jar
+app-debug.apk
+debug.keystore
