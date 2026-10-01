@@ -10,6 +10,7 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.ScrollView;
 import java.io.IOException;
 
 public class MainActivity extends Activity {
@@ -89,6 +90,8 @@ public class MainActivity extends Activity {
             return;
         }
         display.setText(message);
+        // Keep the answer visible even when the lower buttons require scrolling.
+        ((ScrollView) findViewById(R.id.content_scroll)).smoothScrollTo(0, 0);
         display.announceForAccessibility(getString(message));
         display.animate().cancel();
         display.setScaleX(0.85f);

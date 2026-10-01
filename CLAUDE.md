@@ -13,7 +13,14 @@ Use JDK 17, Android SDK platform 34 and the checked-in Gradle 8.2.1 wrapper:
 
 Set `ANDROID_HOME` or `sdk.dir` in untracked `local.properties`.
 Output: `app/build/outputs/apk/debug/app-debug.apk`.
-GitHub Actions builds this APK from a clean checkout and uploads it as an artifact.
+GitHub Actions validates the build and lint on every push and pull request.
+To publish APK artifacts with the same signing identity across runs, configure the repository
+Actions secret `APK_KEYSTORE_BASE64` with the base64 encoding of your existing `debug.keystore`
+(alias `androiddebugkey`, store/key password `android`). Without that secret, CI performs
+validation only and does not distribute an APK signed with a temporary runner key.
+Gradle and Termux both use the root `debug.keystore` when present. Keep and back up that key;
+never put the encoded value in a commit, issue, or chat. Existing APKs signed with another
+key need a one-time uninstall before switching (which removes app data).
 
 ## Termux build
 
@@ -38,7 +45,10 @@ Newly generated debug keys cannot update APKs signed with a different key.
 - Each button is disabled until its sound finishes loading. Failed loads and a 10-second
   timeout show a retry action; retry recreates the Activity and releases the previous pool.
 - Playback failure is shown to the user and logged. Audio pauses on stop and releases on destroy.
-- The answer appears in the screen's display panel with a brief scale animation.
+- The answer appears in the screen's display panel with a brief scale animation; playback
+  scrolls back to the answer when lower buttons are used on a short screen.
+- Navigation uses a dark background on older devices and dark icons on a light background
+  on Android 8.1 and later. The launcher icon uses the same appliance colors as the screen.
 - `res/layout/main.xml`: scrollable appliance buttons, vector icons, and dp/sp dimensions.
 - `app-config.properties`: shared SDK and version settings for Gradle and build.sh.
   When changing COMPILE_SDK, also update SDK_ARCHIVE_URL and SDK_JAR_ENTRY for the new platform.
