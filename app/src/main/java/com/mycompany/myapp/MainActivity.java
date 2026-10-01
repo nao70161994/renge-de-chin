@@ -105,7 +105,14 @@ public class MainActivity extends Activity {
     protected void onStop() {
         soundPool.autoPause();
         display.animate().cancel();
-        for (int id : buttonIds) findViewById(id).animate().cancel();
+        display.setScaleX(1f);
+        display.setScaleY(1f);
+        for (int id : buttonIds) {
+            View button = findViewById(id);
+            button.animate().cancel();
+            button.setScaleX(1f);
+            button.setScaleY(1f);
+        }
         super.onStop();
     }
 
