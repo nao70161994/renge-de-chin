@@ -7,3 +7,5 @@ android.jar
 sdk-android.jar
 app-debug.apk
 debug.keystore
+
+*.apk.idsig

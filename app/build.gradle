@@ -1,7 +1,11 @@
 apply plugin: 'com.android.application'
 
 android {
+    namespace "com.mycompany.myapp"
     compileSdkVersion 34
+    androidResources {
+        noCompress += ["ogg"]
+    }
 
     defaultConfig {
         applicationId "com.mycompany.myapp"
