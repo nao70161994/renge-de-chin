@@ -3,7 +3,7 @@
         <item name="android:fontFamily">sans</item>
         <item name="android:colorAccent">#19766C</item>
         <item name="android:statusBarColor">#19766C</item>
-        <item name="android:navigationBarColor">#FFF8ED</item>
+        <item name="android:navigationBarColor">#203A38</item>
         <item name="android:windowBackground">#FFF8ED</item>
     </style>
     <style name="ApplianceButton" parent="android:style/Widget.Material.Button">

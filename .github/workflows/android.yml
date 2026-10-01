@@ -15,8 +15,20 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
       - uses: gradle/actions/setup-gradle@v4
+      - name: Restore persistent APK signing key
+        env:
+          APK_KEYSTORE_BASE64: ${{ secrets.APK_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$APK_KEYSTORE_BASE64" ]; then
+            printf '%s' "$APK_KEYSTORE_BASE64" | base64 --decode > debug.keystore
+            chmod 600 debug.keystore
+            echo "PUBLISH_APK=true" >> "$GITHUB_ENV"
+          else
+            echo "::notice::Build validation only: set APK_KEYSTORE_BASE64 to publish update-compatible APKs."
+          fi
       - run: ./gradlew --no-daemon clean assembleDebug lintDebug
       - uses: actions/upload-artifact@v4
+        if: env.PUBLISH_APK == 'true'
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
