@@ -9,3 +9,5 @@ app-debug.apk
 debug.keystore
 
 *.apk.idsig
+
+sdk-android-*.jar

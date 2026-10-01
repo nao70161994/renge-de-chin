@@ -1,25 +1,47 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center">
-
-    <Button
-        android:id="@+id/button1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/answer01" />
-
-    <Button
-        android:id="@+id/button2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/answer02" />
-
-    <Button
-        android:id="@+id/button3"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/answer03" />
-
-</LinearLayout>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:gravity="center_horizontal"
+        android:padding="24dp">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" android:text="@string/app_name"
+            android:textColor="#203A38" android:textSize="32sp" android:textStyle="bold"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:text="@string/subtitle"
+            android:textColor="#52665E" android:textSize="15sp"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="28dp" android:padding="20dp"
+            android:orientation="vertical" android:gravity="center"
+            android:background="@drawable/display_panel">
+            <TextView android:id="@+id/display" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:minHeight="64dp"
+                android:gravity="center" android:text="@string/display_idle"
+                android:textColor="#203A38" android:textSize="32sp" android:textStyle="bold"/>
+            <TextView android:id="@+id/status" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                android:gravity="center" android:text="@string/loading"
+                android:accessibilityLiveRegion="polite"
+                android:textColor="#52665E" android:textSize="14sp"/>
+            <Button android:id="@+id/retry" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="@string/retry"
+                android:visibility="gone"/>
+        </LinearLayout>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="24dp" android:text="@string/hint"
+            android:textColor="#52665E" android:textSize="14sp"/>
+        <Button android:id="@+id/button1" style="@style/ApplianceButton"
+            android:text="@string/answer01" android:background="@drawable/range_button"
+            android:drawableStart="@drawable/range_icon"/>
+        <Button android:id="@+id/button2" style="@style/ApplianceButton"
+            android:text="@string/answer02" android:background="@drawable/oven_button"
+            android:drawableStart="@drawable/oven_icon"/>
+        <Button android:id="@+id/button3" style="@style/ApplianceButton"
+            android:text="@string/answer03" android:background="@drawable/toast_button"
+            android:drawableStart="@drawable/toast_icon"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="24dp" android:layout_marginBottom="16dp"
+            android:gravity="center" android:text="@string/footer"
+            android:textColor="#52665E" android:textSize="13sp"/>
+    </LinearLayout>
+</ScrollView>

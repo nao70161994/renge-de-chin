@@ -1,18 +1,21 @@
 apply plugin: 'com.android.application'
 
+def config = new Properties()
+rootProject.file('app-config.properties').withInputStream { config.load(it) }
+
 android {
     namespace "com.mycompany.myapp"
-    compileSdkVersion 34
+    compileSdkVersion config.COMPILE_SDK.toInteger()
     androidResources {
-        noCompress += ["ogg"]
+        noCompress += ["ogg", "wav"]
     }
 
     defaultConfig {
         applicationId "com.mycompany.myapp"
-        minSdkVersion 21
-        targetSdkVersion 34
-        versionCode 1
-        versionName "1.0"
+        minSdkVersion config.MIN_SDK.toInteger()
+        targetSdkVersion config.TARGET_SDK.toInteger()
+        versionCode config.VERSION_CODE.toInteger()
+        versionName config.VERSION_NAME
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
