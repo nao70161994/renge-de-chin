@@ -2,15 +2,26 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# Read only recognized settings; do not execute the properties file as shell code.
+while IFS='=' read -r key value; do
+    case "$key" in
+        COMPILE_SDK|MIN_SDK|TARGET_SDK|VERSION_CODE|VERSION_NAME|SDK_ARCHIVE_URL|SDK_JAR_ENTRY)
+            printf -v "$key" '%s' "$value" ;;
+    esac
+done < app-config.properties
+for key in COMPILE_SDK MIN_SDK TARGET_SDK VERSION_CODE; do
+    [[ "${!key}" =~ ^[0-9]+$ ]] || { echo "Invalid setting: $key" >&2; exit 1; }
+done
+
 SRC_DIR="app/src/main/java"
 MANIFEST="app/src/main/AndroidManifest.xml"
 BUILD_DIR="app/build/output"
-SDK_JAR="sdk-android.jar"
+SDK_JAR="sdk-android-${COMPILE_SDK}.jar"
 KEYSTORE="debug.keystore"
 
 echo "=== 1. ツールのインストール ==="
 if command -v pkg >/dev/null; then
-    pkg install -y openjdk-17 aapt2 d8 apksigner android-tools wget unzip zip
+    pkg install -y openjdk-17 aapt aapt2 d8 apksigner android-tools wget unzip zip
 fi
 for tool in javac aapt2 d8 apksigner zipalign keytool wget unzip zip; do
     command -v "$tool" >/dev/null || { echo "Missing tool: $tool" >&2; exit 1; }
@@ -21,8 +32,8 @@ if [ ! -f "$SDK_JAR" ]; then
     SDK_DOWNLOAD_DIR=$(mktemp -d)
     trap 'rm -rf "$SDK_DOWNLOAD_DIR"' EXIT
     wget -q -O "$SDK_DOWNLOAD_DIR/platform.zip" \
-        "https://dl.google.com/android/repository/platform-34-ext12_r01.zip"
-    unzip -j -q "$SDK_DOWNLOAD_DIR/platform.zip" "android-34-ext12/android.jar" -d "$SDK_DOWNLOAD_DIR"
+        "$SDK_ARCHIVE_URL"
+    unzip -j -q "$SDK_DOWNLOAD_DIR/platform.zip" "$SDK_JAR_ENTRY" -d "$SDK_DOWNLOAD_DIR"
     mv "$SDK_DOWNLOAD_DIR/android.jar" "$SDK_JAR"
 fi
 
@@ -37,10 +48,10 @@ aapt2 link \
     --manifest "$MANIFEST" \
     -I "$SDK_JAR" \
     --java "$BUILD_DIR/gen" \
-    --min-sdk-version 21 --target-sdk-version 34 \
-    --version-code 1 --version-name 1.0 \
+    --min-sdk-version "$MIN_SDK" --target-sdk-version "$TARGET_SDK" \
+    --version-code "$VERSION_CODE" --version-name "$VERSION_NAME" \
     -A app/src/main/assets \
-    -0 ogg \
+    -0 ogg -0 wav \
     "$BUILD_DIR/res_compiled.zip"
 
 echo "=== 5. Java コンパイル ==="
@@ -54,7 +65,7 @@ echo "=== 6. DEX 変換 ==="
 mapfile -d '' CLASS_FILES < <(find "$BUILD_DIR/classes" -name "*.class" -print0)
 d8 --output "$BUILD_DIR/dex" \
     --lib "$SDK_JAR" \
-    --min-api 21 \
+    --min-api "$MIN_SDK" \
     "${CLASS_FILES[@]}"
 
 echo "=== 7. ソースから生成したリソースにDEXを追加 ==="

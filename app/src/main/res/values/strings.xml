@@ -1,7 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">レンジでチン</string>
+    <string name="subtitle">押すだけ、おいしい音あそび。</string>
+    <string name="hint">好きな家電を、ポンとひと押し。</string>
     <string name="answer01">レンジ</string>
     <string name="answer02">オーブン</string>
     <string name="answer03">トースター</string>
+    <string name="bell_answer">チン！</string>
+    <string name="oven_answer">ブン！</string>
+    <string name="toast_answer">トゥース！</string>
+    <string name="display_idle">なにが鳴る？</string>
+    <string name="loading">音を準備しています…</string>
+    <string name="ready">準備OK！ ボタンを押してみよう</string>
+    <string name="load_failed">一部の音を準備できませんでした</string>
+    <string name="play_failed">音を再生できませんでした。もう一度押してください</string>
+    <string name="retry">もう一度準備する</string>
+    <string name="footer">メディア音量を上げて楽しんでね</string>
 </resources>
