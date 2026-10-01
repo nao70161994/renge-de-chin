@@ -3,9 +3,16 @@ package com.mycompany.myapp;
 import android.app.Activity;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
-import android.media.AudioFormat;
-import android.media.AudioManager;
-import android.media.AudioTrack;
+import android.content.res.AssetFileDescriptor;
+import android.media.AudioAttributes;
+import android.util.Log;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.HashSet;
+import java.util.Set;
 import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
@@ -21,51 +28,100 @@ public class MainActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private static final int SAMPLE_RATE = 44100;
     private SoundPool soundPool;
-    private int toosSoundId = -1;
+    private static final String TAG = "MainActivity";
+    private final Set<Integer> loadedSounds = new HashSet<>();
+    private int toosSoundId, bellSoundId, ovenSoundId;
+    private PopupWindow activePopup;
+    private final Runnable dismissPopup = () -> {
+        if (activePopup != null) {
+            activePopup.dismiss();
+            activePopup = null;
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
-        soundPool = new SoundPool.Builder().setMaxStreams(3).build();
-        try {
-            toosSoundId = soundPool.load(getAssets().openFd("toos.ogg"), 1);
-        } catch (Exception e) {}
+        findViewById(R.id.button1).setOnClickListener(this::range);
+        findViewById(R.id.button2).setOnClickListener(this::oven);
+        findViewById(R.id.button3).setOnClickListener(this::toast);
+        setVolumeControlStream(android.media.AudioManager.STREAM_MUSIC);
+
+        soundPool = new SoundPool.Builder().setMaxStreams(3)
+            .setAudioAttributes(new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_GAME)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
+            .build();
+        soundPool.setOnLoadCompleteListener((pool, id, status) -> {
+            if (status == 0) loadedSounds.add(id);
+            else Log.e(TAG, "Sound load failed: " + id + ", status=" + status);
+        });
+        bellSoundId = loadSynth("bell.wav", generateBell());
+        ovenSoundId = loadSynth("oven.wav", generateLightsaber());
+        try (AssetFileDescriptor asset = getAssets().openFd("toos.ogg")) {
+            toosSoundId = soundPool.load(asset, 1);
+        } catch (IOException | RuntimeException e) {
+            Log.e(TAG, "Unable to load toos.ogg", e);
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        handler.removeCallbacks(dismissPopup);
+        dismissPopup.run();
+        soundPool.autoPause();
+        super.onStop();
     }
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
+        handler.removeCallbacksAndMessages(null);
+        dismissPopup.run();
+        soundPool.setOnLoadCompleteListener(null);
         soundPool.release();
+        loadedSounds.clear();
+        super.onDestroy();
+    }
+
+    private int loadSynth(String name, short[] samples) {
+        File file = new File(getCacheDir(), name);
+        int size = samples.length * 2;
+        ByteBuffer wav = ByteBuffer.allocate(44 + size).order(ByteOrder.LITTLE_ENDIAN);
+        wav.putInt(0x46464952).putInt(36 + size).putInt(0x45564157);
+        wav.putInt(0x20746d66).putInt(16).putShort((short) 1).putShort((short) 1);
+        wav.putInt(SAMPLE_RATE).putInt(SAMPLE_RATE * 2).putShort((short) 2).putShort((short) 16);
+        wav.putInt(0x61746164).putInt(size);
+        for (short sample : samples) wav.putShort(sample);
+        try (FileOutputStream out = new FileOutputStream(file)) {
+            out.write(wav.array());
+        } catch (IOException e) {
+            Log.e(TAG, "Unable to write " + name, e);
+            return 0;
+        }
+        return soundPool.load(file.getAbsolutePath(), 1);
+    }
+
+    private void playSound(int id) {
+        if (loadedSounds.contains(id) && soundPool.play(id, 1f, 1f, 0, 0, 1f) == 0) {
+            Log.w(TAG, "Sound could not start: " + id);
+        }
     }
 
     public void range(View v) {
-        playSynth(0);
+        playSound(bellSoundId);
         showPopup(v, "チン！");
     }
 
     public void oven(View v) {
-        playSynth(1);
+        playSound(ovenSoundId);
         showPopup(v, "ブン！");
     }
 
     public void toast(View v) {
-        if (toosSoundId != -1) soundPool.play(toosSoundId, 1f, 1f, 0, 0, 1f);
+        playSound(toosSoundId);
         showPopup(v, "トゥース！");
-    }
-
-    private void playSynth(final int type) {
-        new Thread(() -> {
-            short[] samples = type == 0 ? generateBell() : generateLightsaber();
-            AudioTrack track = new AudioTrack(AudioManager.STREAM_MUSIC, SAMPLE_RATE,
-                AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT,
-                samples.length * 2, AudioTrack.MODE_STATIC);
-            track.write(samples, 0, samples.length);
-            track.play();
-            try { Thread.sleep(samples.length * 1000L / SAMPLE_RATE + 200); } catch (Exception e) {}
-            track.release();
-        }).start();
     }
 
     private short[] generateBell() {
@@ -99,6 +155,8 @@ public class MainActivity extends Activity {
     }
 
     private void showPopup(View anchor, String message) {
+        handler.removeCallbacks(dismissPopup);
+        dismissPopup.run();
         TextView tv = new TextView(this);
         tv.setText(message);
         tv.setTextColor(Color.WHITE);
@@ -117,6 +175,7 @@ public class MainActivity extends Activity {
         popup.setElevation(8);
         popup.showAsDropDown(anchor, 0, -anchor.getHeight() - 120, Gravity.CENTER);
 
-        handler.postDelayed(popup::dismiss, 1500);
+        activePopup = popup;
+        handler.postDelayed(dismissPopup, 1500);
     }
 }
