@@ -1,7 +1,6 @@
-"""Regenerate the original microwave bell and an original sci-fi oven swoosh.
+"""Regenerate the original microwave bell and a deep, slow sci-fi oven swing.
 
-The new oven effect is a synthesized pitch sweep, not an extracted soundtrack
-or a sample of any commercial sound effect. No runtime synthesis is needed.
+The oven sound is an original synthesis, not a sample from any film or game.
 """
 import math
 import struct
@@ -9,6 +8,7 @@ import wave
 from pathlib import Path
 
 RATE = 44100
+OVEN_DURATION_MS = 1150
 assets = Path(__file__).resolve().parents[1] / 'app/src/main/assets'
 
 
@@ -25,32 +25,38 @@ def bell_samples():
 
 
 def oven_samples():
-    """Short, laser-sword-like 'vwoom': falling harmonics and airy sweep."""
+    """Low, slowly swelling 'vwooom': gentle Doppler, harmonic hum, warm whoosh."""
     samples = []
-    phase = phase2 = phase3 = 0.0
-    wind = 0.0
+    phase1 = phase2 = phase3 = phase4 = 0.0
+    wind_fast = wind_slow = 0.0
     seed = 0xC0FFEE
-    for i in range(RATE * 750 // 1000):
+    for i in range(RATE * OVEN_DURATION_MS // 1000):
         t = i / RATE
-        frequency = (120 + 350 * math.exp(-((t - 0.125) / 0.115)**2)
-                     + 80 * math.exp(-t * 8))
-        phase += 2 * math.pi * frequency / RATE
-        phase2 += 2 * math.pi * (frequency * 1.995) / RATE
-        phase3 += 2 * math.pi * (frequency * 3.01) / RATE
-        hum = (0.66 * math.sin(phase) + 0.28 * math.sin(phase2)
-               + 0.16 * math.sin(phase3))
-        flutter = 0.88 + 0.12 * math.sin(2 * math.pi * 28 * t)
-        attack = min(t / 0.018, 1.0)
-        fade = math.exp(-max(t - 0.18, 0) * 5.4)
-        # Deterministic filtered noise adds a smooth swishing movement.
+        # Avoid the pronounced high-frequency upward sweep of an engine rev.
+        frequency = 92 + 17 * math.exp(-((t - 0.39) / 0.33) ** 2) - 10 * t
+        phase1 += 2 * math.pi * frequency / RATE
+        phase2 += 2 * math.pi * (frequency * 2.009) / RATE
+        phase3 += 2 * math.pi * (frequency * 2.988) / RATE
+        phase4 += 2 * math.pi * (frequency * 4.013) / RATE
+        hum = (0.53 * math.sin(phase1) + 0.35 * math.sin(phase2)
+               + 0.18 * math.sin(phase3) + 0.07 * math.sin(phase4))
+        flutter = 0.96 + 0.04 * math.sin(2 * math.pi * 19 * t)
+        attack = 1 - math.exp(-t * 14)
+        fade = math.exp(-max(t - 0.63, 0) * 5.8)
+        body = (0.7 + 0.3 * math.exp(-((t - 0.45) / 0.34) ** 2))
+
+        # Two very soft noise filters create air movement, rather than a hiss.
         seed = (1664525 * seed + 1013904223) & 0xFFFFFFFF
         noise = seed / 2147483648 - 1
-        wind = wind * 0.90 + noise * 0.10
-        sweep = math.exp(-((t - 0.18) / 0.125)**2)
-        signal = 0.68 * hum * flutter * attack * fade + 1.1 * wind * sweep
-        samples.append(max(-32768, min(32767, round(signal * 24500))))
+        wind_fast = 0.91 * wind_fast + 0.09 * noise
+        wind_slow = 0.996 * wind_slow + 0.004 * noise
+        whoosh = math.exp(-((t - 0.49) / 0.26) ** 2)
+        signal = (0.90 * hum * flutter * attack * fade * body
+                  + 0.85 * (wind_fast - wind_slow) * whoosh * attack)
+        # Make the tail end at zero to avoid a click when the clip finishes.
+        signal *= min(1, (OVEN_DURATION_MS / 1000 - t) / 0.035)
+        samples.append(max(-32768, min(32767, round(signal * 23500))))
     return samples
-
 
 def write_wave(path, samples):
     with wave.open(str(path), 'wb') as audio:

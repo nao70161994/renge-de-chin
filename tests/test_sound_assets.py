@@ -16,7 +16,7 @@ class SoundAssetTests(unittest.TestCase):
     def test_sounds_have_expected_duration_and_format(self):
         for name, factory, duration_ms in [
             ("bell", sounds.bell_samples, 1200),
-            ("oven", sounds.oven_samples, 750),
+            ("oven", sounds.oven_samples, sounds.OVEN_DURATION_MS),
         ]:
             with self.subTest(name=name), wave.open(
                 str(ROOT / "app" / "src" / "main" / "assets" / (name + ".wav")), "rb"
