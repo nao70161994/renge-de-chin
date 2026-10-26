@@ -39,8 +39,11 @@ Newly generated debug keys cannot update APKs signed with a different key.
 ## Implementation
 
 - `MainActivity.java`: explicit button listeners and SoundPool (three simultaneous streams).
-- `assets/bell.wav` / `oven.wav`: pre-generated original waveforms. No runtime synthesis
-  or cache writes. Regenerate only when changing audio with `python tools/generate_sounds.py`.
+- `assets/bell.wav`: original bell, reproducible with `python tools/generate_sounds.py`.
+- `assets/oven.wav`: user-approved **F2 thick-electric** swing (0.245 seconds,
+  44.1 kHz / mono / 16-bit PCM), replacing the earlier 1.15-second experiment.
+  This is a mastered asset and is deliberately NOT overwritten by `generate_sounds.py`.
+  Regression tests pin its SHA-256 so a regeneration cannot silently revert F2.
 - `assets/toos.ogg`: original toaster recording. WAV and OGG are uncompressed in both APK paths.
 - Each button is disabled until its sound finishes loading. Failed loads and a 10-second
   timeout show a retry action; retry recreates the Activity and releases the previous pool.
